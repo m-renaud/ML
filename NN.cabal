@@ -1,0 +1,40 @@
+name:                NN
+version:             0.1.0.0
+synopsis:            Neural network.
+description:         Please see README.md
+homepage:            https://github.com/githubuser/NN#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Matt Renaud
+maintainer:          MatthewRobertRenaud@gmail.com
+copyright:           2016 Matt Renaud
+category:            AI
+build-type:          Simple
+-- extra-source-files:
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     NN
+  ghc-options:         -Wall -threaded -fprof-auto -rtsopts
+  build-depends:       base >= 4.7 && < 5,
+                       hmatrix >= 0.17.0.1 && < 0.18,
+                       MonadRandom >= 0.4.2.2 && < 0.5,
+                       normaldistribution >= 1.1.0.2 && < 1.2,
+                       random >= 1.1 && < 2
+  default-language:    Haskell2010
+
+executable test
+  hs-source-dirs:      testing
+  main-is:             Main.hs
+  ghc-options:         -Wall -threaded -prof -fprof-auto -rtsopts
+  build-depends:       base >= 4.7 && < 5,
+                       hmatrix >= 0.17.0.1 && < 0.18,
+                       MonadRandom >= 0.4.2.2 && < 0.5,
+                       NN
+
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/m-renaud/NN
