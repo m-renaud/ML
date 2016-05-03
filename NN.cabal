@@ -15,8 +15,8 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     NN
   ghc-options:         -Wall -threaded -fprof-auto -rtsopts
+  exposed-modules:     NN, Numeric.LinearAlgebra.Extended
   build-depends:       base >= 4.7 && < 5,
                        hmatrix >= 0.17.0.1 && < 0.18,
                        MonadRandom >= 0.4.2.2 && < 0.5,
