@@ -5,8 +5,7 @@ Neural network implementation.
 module NN
        (
          -- * Data types
-         ActivationFunction
-       , Neuron(..)
+         Neuron(..)
        , Layer(..)
        , Network(..)
 
@@ -17,10 +16,9 @@ module NN
          -- * Running networks
        , feedForward
        , runNetwork
-
-         -- * Activation functions
-       , sigmoid
        ) where
+
+import NN.ActivationFunction (ActivationFunction)
 
 import Control.Monad (forM, replicateM)
 import Control.Monad.Random (Rand, liftRand)
@@ -33,9 +31,6 @@ import System.Random (RandomGen)
 -- ==================================================
 -- Types.
 -- ==================================================
-
--- | The activation function maps R -> R.
-type ActivationFunction = R -> R
 
 -- | A Neuron has a bias and weights for each of its inputs.
 data Neuron = Neuron !R (Vector R) deriving Show
@@ -103,12 +98,3 @@ feedForward act x (Layer biases weights) = (vectorize act) z
 runNetwork :: Network -> ActivationFunction -> Vector R -> Vector R
 runNetwork (Network []) _act x = x
 runNetwork (Network (l:ls)) act input = runNetwork (Network ls) act (feedForward act input l)
-
-
--- ==================================================
--- Activation functions.
--- ==================================================
-
--- | The sigmoid function.
-sigmoid :: ActivationFunction
-sigmoid !z = 1.0 / (1.0 + exp (-z))
