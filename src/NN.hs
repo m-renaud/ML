@@ -5,8 +5,7 @@ Neural network implementation.
 module NN
        (
          -- * Data types
-         Neuron(..)
-       , Layer(..)
+         Layer(..)
        , Network(..)
 
          -- * Network initialization
@@ -31,9 +30,6 @@ import System.Random (RandomGen)
 -- ==================================================
 -- Types.
 -- ==================================================
-
--- | A Neuron has a bias and weights for each of its inputs.
-data Neuron = Neuron !R (Vector R) deriving Show
 
 -- | A layer in a neural network is a bias vector and weight matrix.
 --
