@@ -4,17 +4,17 @@ Neural network implementation.
 -}
 module NN
        (
-         -- * Data types
-         Layer(..)
-       , Network(..)
+           -- * Data types
+           Layer(..)
+       ,   Network(..)
 
-         -- * Network initialization
-       , randLayer
-       , randNetwork
+           -- * Network initialization
+       ,   randLayer
+       ,   randNetwork
 
-         -- * Running networks
-       , feedForward
-       , runNetwork
+           -- * Running networks
+       ,   feedForward
+       ,   runNetwork
        ) where
 
 import NN.ActivationFunction (ActivationFunction)
