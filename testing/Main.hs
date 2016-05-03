@@ -7,5 +7,5 @@ import Numeric.LinearAlgebra (vector)
 
 main :: IO ()
 main = do
-  net <- evalRandIO $ randNetwork [100, 4000, 200]
-  print $ runNetwork net sigmoid (vector $ concat $ replicate 10 [1,5,4,3,6,5,4,2,3,4])
+  net <- evalRandIO $ randNetwork [256, 40, 10]
+  print $ runNetwork net sigmoid (vector $ concat $ replicate 32 [1,5,4,3,6,5,4,2])
