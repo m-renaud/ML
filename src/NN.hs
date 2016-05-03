@@ -39,12 +39,12 @@ import System.Random (RandomGen)
 data Layer = Layer
              { layerBiases  :: Vector R  -- ^ A vector in Rⁿ representing the neuron biases.
              , layerWeights :: Matrix R  -- ^ An /nxm/ real matrix of the neuron weights.
-             } deriving Show
+             } deriving (Show, Read)
 
 -- | A network is a list of layers.
 data Network = Network
                { networkLayers :: [Layer] -- ^ The layers in the neural network.
-               } deriving Show
+               } deriving (Show, Read)
 
 
 -- ==================================================
