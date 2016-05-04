@@ -5,7 +5,8 @@ Neural network implementation.
 module NN
        (
            -- * Data types
-           Layer(..)
+           ActivationFunction
+       ,   Layer(..)
        ,   Network(..)
 
            -- * Network initialization
