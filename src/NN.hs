@@ -84,16 +84,16 @@ adjacentPairs xs = zip (init xs) (tail xs)
 
 -- | Feed the output from a previous layer to the next layer.
 feedForward :: ActivationFunction  -- ^ Neuron activation function.
-               -> Vector R         -- ^ Input to the layer.
-               -> Layer            -- ^ Layer to run.
-               -> Vector R         -- ^ Output from the layer.
+            -> Vector R            -- ^ Input to the layer.
+            -> Layer               -- ^ Layer to run.
+            -> Vector R            -- ^ Output from the layer.
 feedForward act x (Layer biases weights) = cmap act z
     where z = (weights #> x) + biases
 
 -- | Run a neural network.
-runNetwork :: Network                -- ^ Network to run.
-              -> ActivationFunction  -- ^ Neuron activation function.
-              -> Vector R            -- ^ Network input.
-              -> Vector R            -- ^ Network output.
+runNetwork :: Network             -- ^ Network to run.
+           -> ActivationFunction  -- ^ Neuron activation function.
+           -> Vector R            -- ^ Network input.
+           -> Vector R            -- ^ Network output.
 runNetwork (Network []) _act x = x
 runNetwork (Network (l:ls)) act input = runNetwork (Network ls) act (feedForward act input l)
