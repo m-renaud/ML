@@ -53,9 +53,9 @@ data Network = Network
 
 -- | Generate a randomly initialized layer in a neural network.
 randLayer :: RandomGen g
-             => Int  -- ^ The number of inputs into the layer.
-             -> Int  -- ^ The number of neurons in the layer.
-             -> Rand g Layer
+             => Int           -- ^ The number of inputs into the layer.
+             -> Int           -- ^ The number of neurons in the layer.
+             -> Rand g Layer  -- ^ The randomly generated layer.
 randLayer numInputs numNeurons = do
     bias <- vector <$> replicateM numNeurons (liftRand normal)
     weights <- (numNeurons><numInputs) <$> replicateM (numNeurons*numInputs) (liftRand normal)
@@ -66,8 +66,8 @@ randLayer numInputs numNeurons = do
 -- For example, [3,2,4] will generate a neural network with 3 input
 -- neurons, 1 hidden layer with 2 neurons and 4 output neurons.
 randNetwork :: RandomGen g
-               => [Int]  -- ^ The number of neurons in each layer.
-               -> Rand g Network
+               => [Int]           -- ^ The number of neurons in each layer.
+               -> Rand g Network  -- ^ The randomly generated network.
 randNetwork sizes = Network <$> forM dims (uncurry randLayer)
     where dims = adjacentPairs sizes
 
@@ -86,7 +86,7 @@ adjacentPairs xs = zip (init xs) (tail xs)
 feedForward :: ActivationFunction  -- ^ Neuron activation function.
                -> Vector R         -- ^ Input to the layer.
                -> Layer            -- ^ The layer to run.
-               -> Vector R
+               -> Vector R         -- ^ The output from the layer.
 feedForward act x (Layer biases weights) = cmap act z
     where z = (weights #> x) + biases
 
