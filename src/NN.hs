@@ -22,8 +22,7 @@ import NN.ActivationFunction (ActivationFunction)
 import Control.Monad (forM, replicateM)
 import Control.Monad.Random (Rand, liftRand)
 import Data.Random.Normal (normal)
-import Numeric.LinearAlgebra (Matrix, R, Vector, (><), (#>), vector)
-import Numeric.LinearAlgebra.Extended (vectorize)
+import Numeric.LinearAlgebra (Matrix, R, Vector, (><), (#>), cmap, vector)
 import System.Random (RandomGen)
 
 
@@ -87,7 +86,7 @@ feedForward :: ActivationFunction  -- ^ Neuron activation function.
                -> Vector R         -- ^ Input to the layer.
                -> Layer            -- ^ The layer to run.
                -> Vector R
-feedForward act x (Layer biases weights) = (vectorize act) z
+feedForward act x (Layer biases weights) = cmap act z
     where z = (weights #> x) + biases
 
 -- | Run a neural network with the input vector 'x'.
