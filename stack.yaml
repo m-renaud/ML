@@ -30,3 +30,7 @@ extra-package-dbs: []
 # Extra directories used by stack for building
 # extra-include-dirs: [/path/to/dir]
 # extra-lib-dirs: [/path/to/dir]
+
+# Local Variables:
+# mode: conf
+# End:
