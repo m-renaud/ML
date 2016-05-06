@@ -1,11 +1,11 @@
 {-# LANGUAGE BangPatterns #-}
 {- |
-Neural network implementation.
+Simple neural network implementation, for learning purposes only.
 -}
 module NN
        (
            -- * Data types
-           ActivationFunction
+           ActivationFunction  -- Re-export from NN.ActivationFunction.
        ,   Layer(..)
        ,   Network(..)
 
@@ -22,6 +22,8 @@ import NN.ActivationFunction (ActivationFunction)
 
 import Control.Monad (forM, replicateM)
 import Control.Monad.Random (Rand, liftRand)
+import Data.Foldable (foldl')
+
 import Data.Random.Normal (normal)
 import Numeric.LinearAlgebra (Matrix, R, Vector, (><), (#>), cmap, vector)
 import System.Random (RandomGen)
@@ -95,5 +97,4 @@ runNetwork :: Network             -- ^ Network to run.
            -> ActivationFunction  -- ^ Neuron activation function.
            -> Vector R            -- ^ Network input.
            -> Vector R            -- ^ Network output.
-runNetwork (Network []) _act x = x
-runNetwork (Network (l:ls)) act input = runNetwork (Network ls) act (feedForward act input l)
+runNetwork (Network layers) act input = foldl' (feedForward act) input layers
