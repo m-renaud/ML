@@ -26,6 +26,9 @@ module ML.NN
 
            -- * Cost function derivatives
        ,   mse'
+
+           -- * Internal (exposed for testing)
+       ,   computeActivations
        ) where
 
 import ML.NN.ActivationFunction (ActivationFunction, ActivationFunctionDerivative)
@@ -155,8 +158,10 @@ instance Monoid Gradient where
 -- I chose to use the State monad so it's more explicit that the output activation of
 -- one layer is the input to the next.
 computeActivations :: ActivationFunction -> Network -> Vector R -> ([Vector R], [Vector R])
-computeActivations act network input = unzip $ evalState (mapM runLayer (networkLayers network)) input
-    where runLayer :: Layer -> State (Vector R) (Vector R, Vector R)
+computeActivations act network input = (reverse zs, reverse (input:as))
+    where (zs, as) = unzip $ evalState (mapM runLayer (networkLayers network)) input
+
+          runLayer :: Layer -> State (Vector R) (Vector R, Vector R)
           runLayer (Layer b w) = do
               x <- get
               let z = w #> x + b
