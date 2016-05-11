@@ -21,6 +21,7 @@ module ML.NN
            -- * Training networks
        ,   TrainingConfig(..)
        ,   Sample(..)
+       ,   Gradient(..)
        ,   CostDerivative
        ,   gradientDescent
 
@@ -229,30 +230,21 @@ gradientDescent :: TrainingConfig
                 -> [Sample]  -- ^ Training data (input, expected output).
                 -> Network   -- ^ Current network.
                 -> Network   -- ^ Updated network.
-gradientDescent trainingConfig trainingData inputNetwork = go epochs inputNetwork
+gradientDescent (TrainingConfig epochs eta act act' cost') trainingData inputNetwork =
+    go epochs inputNetwork
     where
-        -- Training configuration parameters.
-        epochs = trainingEpochs trainingConfig
-        act    = trainingActivation trainingConfig
-        act'   = trainingActivationDerivative trainingConfig
-        cost'  = trainingCostDerivative trainingConfig
-        eta    = trainingEta trainingConfig
-
         go :: Int -> Network -> Network
         go 0     network = network
         go epoch network = go (epoch-1) (Network layers')
             where sampleGradients :: [Gradient]
                   sampleGradients = fmap (backpropogation act act' cost' network) trainingData
 
-                  sampleGradient :: Gradient
-                  sampleGradient = mconcat sampleGradients
-
-                  nablaB = gradientNablaB sampleGradient
-                  nablaW = gradientNablaW sampleGradient
+                  Gradient nablaB nablaW = mconcat sampleGradients
 
                   numSamples = fromIntegral $ length trainingData
                   layers' = zipWith3 updateWeightsAndBiases (networkLayers network) nablaB nablaW
 
+                  updateWeightsAndBiases :: Layer -> Vector R -> Matrix R -> Layer
                   updateWeightsAndBiases (Layer b w) nb nw =
                       Layer (b-(konst (eta/numSamples) (size b)) * nb)
                             (w-(konst (eta/numSamples) (size w)) * nw)
