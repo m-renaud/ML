@@ -124,19 +124,6 @@ runNetwork (Network layers) act input = foldl' (feedForward act) input layers
 -- Training networks.
 -- ==================================================
 
--- | Return lists of the z and activation values from each layer in the network.
---
--- The values are returned in reverse order for use by the backpropogation algorithm.
-computeActivations :: ActivationFunction -> Network -> Vector R -> ([Vector R], [Vector R])
-computeActivations act network input = unzip $ evalState (mapM runLayer (networkLayers network)) input
-    where runLayer :: Layer -> State (Vector R) (Vector R, Vector R)
-          runLayer (Layer b w) = do
-              x <- get
-              let z = w #> x + b
-                  a = cmap act z
-              put a
-              pure $ (z,a)
-
 -- | A vectorized function which returns ∂Cₓ/∂a.
 --
 -- The first parameter is the output activation, the second parameter is the
@@ -162,7 +149,22 @@ instance Monoid Gradient where
     g `mappend` (Gradient [] []) = g
     (Gradient lb lw) `mappend` (Gradient rb rw) = Gradient (zipWith (+) lb rb) (zipWith (+) lw rw)
 
--- | Compute the gradient for  for the training example.
+-- | Return lists of the z and activation values from each layer in the network.
+--
+-- The values are returned in reverse order for use by the backpropogation algorithm.
+-- I chose to use the State monad so it's more explicit that the output activation of
+-- one layer is the input to the next.
+computeActivations :: ActivationFunction -> Network -> Vector R -> ([Vector R], [Vector R])
+computeActivations act network input = unzip $ evalState (mapM runLayer (networkLayers network)) input
+    where runLayer :: Layer -> State (Vector R) (Vector R, Vector R)
+          runLayer (Layer b w) = do
+              x <- get
+              let z = w #> x + b
+                  a = cmap act z
+              put a
+              pure $ (z,a)
+
+-- | Compute the gradient for the training example.
 backpropogation :: ActivationFunction
                 -> ActivationFunctionDerivative
                 -> CostDerivative
@@ -216,7 +218,6 @@ backpropogationHiddenLayers act' delta_L nablaB_L nablaW_L zs activations layers
                   d'  = (tr w #> d) * sp
                   nb' = d'
                   nw' = asColumn d' <> asRow a
-
 
 -- | Train the neural network using gradient descent.
 gradientDescent :: TrainingConfig
