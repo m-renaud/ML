@@ -57,15 +57,12 @@ Layer :: Vector R -> Matrix R -> Layer
 -- | A network is a list of layers.
 data Network
 Network :: [Layer] -> Network
-
--- | Layers in the neural network.
 [networkLayers] :: Network -> [Layer]
 
 -- | Generate a randomly initialized layer in a neural network.
 randLayer :: RandomGen g => Int -> Int -> Rand g Layer
 
--- | Generate a random neural network given the sizes of each of the
---   layers.
+-- | Generate a random neural network given the size of each layer.
 --   
 --   For example, <tt>[3,2,4]</tt> will generate a neural network with 3
 --   input neurons, 1 hidden layer with 2 neurons and 4 output neurons.
@@ -114,13 +111,11 @@ gradientDescent :: TrainingConfig -> [Sample] -> Network -> Network
 -- | The derivative of the mean squared error cost function.
 mse' :: CostDerivative
 
--- | Return lists of the z and activation values from each layer in the
---   network.
+-- | Return z and activation values for each layer in the network.
 --   
 --   The values are returned in reverse order for use by the
---   backpropogation algorithm. I chose to use the State monad so it's more
---   explicit that the output activation of one layer is the input to the
---   next.
+--   backpropogation algorithm. We the State monad so it's more explicit
+--   that the output activation of one layer is the input to the next.
 computeActivations :: ActivationFunction -> Network -> Vector R -> ([Vector R], [Vector R])
 instance GHC.Show.Show ML.NN.Gradient
 instance GHC.Read.Read ML.NN.Gradient
