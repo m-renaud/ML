@@ -159,8 +159,8 @@ instance Monoid Gradient where
 -- I chose to use the State monad so it's more explicit that the output activation of
 -- one layer is the input to the next.
 computeActivations :: ActivationFunction -> Network -> Vector R -> ([Vector R], [Vector R])
-computeActivations act network input = (reverse zs, reverse (input:as))
-    where (zs, as) = unzip $ evalState (mapM runLayer (networkLayers network)) input
+computeActivations act (Network layers) input = (reverse zs, reverse (input:as))
+    where (zs, as) = unzip $ evalState (mapM runLayer layers) input
 
           runLayer :: Layer -> State (Vector R) (Vector R, Vector R)
           runLayer (Layer b w) = do
@@ -177,53 +177,38 @@ backpropogation :: ActivationFunction
                 -> Network
                 -> Sample
                 -> Gradient
-backpropogation act act' cost' network (Sample x y) = gradient
-    where (z:zs, a:a':activations) = computeActivations act network x
-          (delta_L, (nablaB_L, nablaW_L)) = backpropogationLastLayer act' cost' y z a a'
-          initLayers = init $ networkLayers network
-          gradient =
-              backpropogationHiddenLayers act' delta_L nablaB_L nablaW_L zs activations initLayers
+backpropogation act act' cost' network@(Network layers) (Sample x y) =
+    Gradient (reverse $ nablaB_L:nablaBs) (reverse $ nablaW_L:nablaWs)
+    where (z:zs, a:a':as) = computeActivations act network x
+          delta_L = cost' a y * cmap act' z
 
--- | Compute delta, ∇b, and ∇w for the last (output) layer in the network.
-backpropogationLastLayer :: ActivationFunctionDerivative
-                         -> CostDerivative
-                         -> Vector R  -- ^ Expected output.
-                         -> Vector R  -- ^ zL
-                         -> Vector R  -- ^ aL
-                         -> Vector R  -- ^ aL-1
-                         -> (Vector R, (Vector R, Matrix R))
-backpropogationLastLayer act' cost' y z a a' = (delta, (nabla_b, nabla_w))
-    where delta   = cost' a y * cmap act' z
-          nabla_b = delta
-          nabla_w = asColumn delta <> asRow a'
+          nablaB_L = delta_L
+          nablaW_L = asColumn delta_L <> asRow a'
+          (nablaBs, nablaWs) =
+              backpropogationBackwardsPass act' delta_L zs as (reverse $ tail layers)
 
--- | Compute the gradient for layers 1 to L-1.
+-- | Perform the backwards pass of the backpropogation algorithm.
 --
--- This works by scanning the layers from right to left (scanr), computing the new
--- delta (used for the next layer), and emitting ∇b and ∇w for the layer.
-backpropogationHiddenLayers :: ActivationFunctionDerivative
-                            -> Vector R    -- ^ delta
-                            -> Vector R    -- ^ ∇b for layer L.
-                            -> Matrix R    -- ^ ∇w for layer L.
-                            -> [Vector R]  -- ^ zs.
-                            -> [Vector R]  -- ^ activations.
-                            -> [Layer]     -- ^ Layers 1 to L-1.
-                            -> Gradient
-backpropogationHiddenLayers act' delta_L nablaB_L nablaW_L zs activations layers =
-    uncurry Gradient $ unzip $ fmap snd output
+-- Traverse the previously reverse z values, activations, and layers from layer L to 2.
+-- We thread the delta value along as state
+backpropogationBackwardsPass :: ActivationFunctionDerivative
+                             -> Vector R    -- ^ delta
+                             -> [Vector R]  -- ^ zs in reverse order.
+                             -> [Vector R]  -- ^ activations in reverse order.
+                             -> [Layer]     -- ^ Layers L to 2.
+                             -> ([Vector R], [Matrix R])  -- ^
+backpropogationBackwardsPass act' delta_L zs as layers = unzip output
     where
-        output :: [(Vector R, (Vector R, Matrix R))]  -- ^ (delta, (∇b, ∇w))
-        output = scanr computeNabla (delta_L, (nablaB_L, nablaW_L)) (zip3 layers zs activations)
+        output = evalState (mapM processLayer (zip3 layers zs as)) delta_L
 
-        computeNabla :: (Layer, Vector R, Vector R)       -- ^ (layer, z, activation)
-                     -> (Vector R, (Vector R, Matrix R))  -- ^ (delta, (∇b, ∇w))
-                     -> (Vector R, (Vector R, Matrix R))  -- ^ (delta', (∇b', ∇w'))
-        computeNabla (layer, z, a) (d, (_, _)) = (d', (nb', nw'))
-            where sp  = cmap act' z
-                  w   = layerWeights layer
-                  d'  = (tr w #> d) * sp
-                  nb' = d'
-                  nw' = asColumn d' <> asRow a
+        processLayer :: (Layer, Vector R, Vector R) -> State (Vector R) (Vector R, Matrix R)
+        processLayer ((Layer _bias weights), z, a) = do
+            delta <- get
+            let actPrime = cmap act' z
+                delta'   = (tr weights #> delta) * actPrime
+            put delta'
+            pure (delta', asColumn delta' <> asRow a)
+
 
 -- | Train the neural network using gradient descent.
 gradientDescent :: TrainingConfig
