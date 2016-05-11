@@ -96,6 +96,12 @@ Sample :: Vector R -> Vector R -> Sample
 [sampleInput] :: Sample -> Vector R
 [sampleExpectedOutput] :: Sample -> Vector R
 
+-- | The gradient of the network.
+data Gradient
+Gradient :: [Vector R] -> [Matrix R] -> Gradient
+[gradientNablaB] :: Gradient -> [Vector R]
+[gradientNablaW] :: Gradient -> [Matrix R]
+
 -- | A vectorized function which returns ∂Cₓ/∂a.
 --   
 --   The first parameter is the output activation, the second parameter is
@@ -107,6 +113,15 @@ gradientDescent :: TrainingConfig -> [Sample] -> Network -> Network
 
 -- | The derivative of the mean squared error cost function.
 mse' :: CostDerivative
+
+-- | Return lists of the z and activation values from each layer in the
+--   network.
+--   
+--   The values are returned in reverse order for use by the
+--   backpropogation algorithm. I chose to use the State monad so it's more
+--   explicit that the output activation of one layer is the input to the
+--   next.
+computeActivations :: ActivationFunction -> Network -> Vector R -> ([Vector R], [Vector R])
 instance GHC.Show.Show ML.NN.Gradient
 instance GHC.Read.Read ML.NN.Gradient
 instance GHC.Show.Show ML.NN.Sample
