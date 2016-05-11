@@ -60,7 +60,7 @@ data Layer = Layer
 
 -- | A network is a list of layers.
 data Network = Network
-               { networkLayers :: [Layer] -- ^ Layers in the neural network.
+               { networkLayers :: [Layer]
                } deriving (Show, Read)
 
 
@@ -87,7 +87,7 @@ randLayer numInputs numNeurons = do
     weights <- (numNeurons><numInputs) <$> replicateM (numNeurons*numInputs) (liftRand normal)
     return $ Layer bias weights
 
--- | Generate a random neural network given the sizes of each of the layers.
+-- | Generate a random neural network given the size of each layer.
 --
 -- For example, @[3,2,4]@ will generate a neural network with 3 input
 -- neurons, 1 hidden layer with 2 neurons and 4 output neurons.
@@ -130,8 +130,8 @@ runNetwork (Network layers) act input = foldl' (feedForward act) input layers
 
 -- | A vectorized function which returns ∂Cₓ/∂a.
 --
--- The first parameter is the output activation, the second parameter is the
--- expected output.
+-- The first parameter is the output activation, the second parameter
+-- is the expected output.
 type CostDerivative = Vector R -> Vector R -> Vector R
 
 -- | A training sample.
@@ -147,17 +147,22 @@ data Gradient = Gradient
                 } deriving (Read, Show)
 
 -- | The monoid instance for gradient sums the components.
+--
+-- We treat a gradiant with no bias or weight values as the `mempty`
+-- Gradient.
 instance Monoid Gradient where
     mempty = Gradient [] []
     (Gradient [] []) `mappend` g = g
     g `mappend` (Gradient [] []) = g
-    (Gradient lb lw) `mappend` (Gradient rb rw) = Gradient (zipWith (+) lb rb) (zipWith (+) lw rw)
+    (Gradient lb lw) `mappend` (Gradient rb rw) =
+        Gradient (zipWith (+) lb rb) (zipWith (+) lw rw)
 
--- | Return lists of the z and activation values from each layer in the network.
+-- | Return z and activation values for each layer in the network.
 --
--- The values are returned in reverse order for use by the backpropogation algorithm.
--- I chose to use the State monad so it's more explicit that the output activation of
--- one layer is the input to the next.
+-- The values are returned in reverse order for use by the
+-- backpropogation algorithm.  We the State monad so it's more
+-- explicit that the output activation of one layer is the input to
+-- the next.
 computeActivations :: ActivationFunction -> Network -> Vector R -> ([Vector R], [Vector R])
 computeActivations act (Network layers) input = (reverse zs, reverse (input:as))
     where (zs, as) = unzip $ evalState (mapM runLayer layers) input
@@ -189,8 +194,8 @@ backpropogation act act' cost' network@(Network layers) (Sample x y) =
 
 -- | Perform the backwards pass of the backpropogation algorithm.
 --
--- Traverse the previously reverse z values, activations, and layers from layer L to 2.
--- We thread the delta value along as state
+-- Traverse the previously reverse z values, activations, and layers
+-- from layer L to 2.  We thread the delta value along as state
 backpropogationBackwardsPass :: ActivationFunctionDerivative
                              -> Vector R    -- ^ delta
                              -> [Vector R]  -- ^ zs in reverse order.
