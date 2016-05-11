@@ -2,7 +2,7 @@
 {- |
 Simple neural network implementation, for learning purposes only.
 -}
-module NN
+module ML.NN
        (
            -- * Data types
            ActivationFunction  -- Re-export from NN.ActivationFunction.
@@ -28,7 +28,7 @@ module NN
        ,   mse'
        ) where
 
-import NN.ActivationFunction (ActivationFunction, ActivationFunctionDerivative)
+import ML.NN.ActivationFunction (ActivationFunction, ActivationFunctionDerivative)
 
 import Control.Monad (forM, replicateM)
 import Control.Monad.Random (Rand, liftRand)

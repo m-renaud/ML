@@ -2,10 +2,10 @@ module Main where
 
 import Test.Tasty (defaultMain, testGroup)
 
-import qualified NN.Tests
+import qualified ML.NN.Tests
 
 main :: IO ()
 main = defaultMain $ testGroup "Tests"
     [
-        NN.Tests.tests
+        ML.NN.Tests.tests
     ]

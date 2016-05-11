@@ -2,9 +2,9 @@
 {- |
 Activation functions and their derivatives for use with neural networks.
 -}
-module NN.Activation (sigmoid, sigmoid') where
+module ML.NN.Activation (sigmoid, sigmoid') where
 
-import NN.ActivationFunction (ActivationFunction, ActivationFunctionDerivative)
+import ML.NN.ActivationFunction (ActivationFunction, ActivationFunctionDerivative)
 
 -- | The sigmoid function: https://en.wikipedia.org/wiki/Sigmoid_function.
 sigmoid :: ActivationFunction

@@ -1,7 +1,7 @@
 module Main where
 
-import NN
-import NN.Activation (sigmoid)
+import ML.NN
+import ML.NN.Activation (sigmoid)
 
 import Control.Monad.Random (evalRandIO)
 import Numeric.LinearAlgebra (vector)

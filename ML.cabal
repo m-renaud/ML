@@ -1,12 +1,11 @@
-name:                NN
+name:                ML
 version:             0.1.0.0
-synopsis:            Neural network.
+synopsis:            Machine learning code.
 description:         Please see README.md
-homepage:            https://github.com/githubuser/NN#readme
+homepage:            https://github.com/m-renaud/ML#readme
 license:             BSD3
 license-file:        LICENSE
 author:              Matt Renaud
-maintainer:          MatthewRobertRenaud@gmail.com
 copyright:           2016 Matt Renaud
 category:            AI
 build-type:          Simple
@@ -16,7 +15,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   ghc-options:         -Wall -threaded
-  exposed-modules:     NN, NN.Activation, NN.ActivationFunction
+  exposed-modules:     ML.NN, ML.NN.Activation, ML.NN.ActivationFunction
   build-depends:       MonadRandom >= 0.4.2.2 && < 0.5,
                        base >= 4.7 && < 5,
                        hmatrix >= 0.17.0.1 && < 0.18,
@@ -30,14 +29,14 @@ executable test
   main-is:             Main.hs
   ghc-options:         -Wall -threaded
   build-depends:       MonadRandom >= 0.4.2.2 && < 0.5,
-                       NN,
+                       ML,
                        base >= 4.7 && < 5,
                        hmatrix >= 0.17.0.1 && < 0.18,
                        mtl >= 2.2.1
 
   default-language:    Haskell2010
 
-  
+
 -- ==================================================
 -- Tests.
 -- ==================================================
@@ -48,7 +47,7 @@ test-suite test-all
   main-is:             Main.hs
   ghc-options:         -Wall
   build-depends:       HUnit >= 1.3.1.1 && < 1.4,
-                       NN,
+                       ML,
                        base >= 4.7 && < 5,
                        hmatrix >= 0.17.0.1 && < 0.18,
                        mtl >= 2.2.1,
@@ -58,4 +57,4 @@ test-suite test-all
 
 source-repository head
   type:     git
-  location: https://github.com/m-renaud/NN
+  location: https://github.com/m-renaud/ML

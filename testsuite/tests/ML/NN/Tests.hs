@@ -1,6 +1,6 @@
-module NN.Tests (tests) where
+module ML.NN.Tests (tests) where
 
-import NN (ActivationFunction, Layer(..), Network(..), feedForward, runNetwork)
+import ML.NN (ActivationFunction, Layer(..), Network(..), feedForward, runNetwork)
 
 import Numeric.LinearAlgebra (konst, size, sumElements, vector)
 
@@ -12,7 +12,7 @@ identityActivation :: ActivationFunction
 identityActivation x = x
 
 tests :: TestTree
-tests = testGroup "NN"
+tests = testGroup "ML.NN"
     [
         testCase
         "testFeedForward_SumInputWeights_NoBias" testFeedForward_SumInputWeights_NoBias

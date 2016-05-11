@@ -1,7 +1,7 @@
 {-|
 Type aliases for activation functions and their derivative.
 -}
-module NN.ActivationFunction (ActivationFunction, ActivationFunctionDerivative) where
+module ML.NN.ActivationFunction (ActivationFunction, ActivationFunctionDerivative) where
 
 import Numeric.LinearAlgebra (R)
 
