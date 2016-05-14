@@ -29,7 +29,7 @@ module ML.NN
        ,   mse'
 
            -- * Internal (exposed for testing)
-       ,   computeActivations
+       ,   computeZsAndAs
        ) where
 
 import ML.NN.ActivationFunction (ActivationFunction, ActivationFunctionDerivative)
@@ -78,6 +78,20 @@ data TrainingConfig = TrainingConfig
 -- Network initialization.
 -- ==================================================
 
+-- | Generate a random neural network given the size of each layer.
+--
+-- For example, @[3,2,4]@ will generate a neural network with 3 input
+-- neurons, 1 hidden layer with 2 neurons and 4 output neurons.
+randNetwork :: RandomGen g => [Int] -> Rand g Network
+randNetwork sizes = Network <$> forM dims (uncurry randLayer)
+    where dims = adjacentPairs sizes
+
+-- | Return a list of pairs of adjacent elements in a list.
+--
+-- Example: adjacentPairs [1,2,3] ==> [(1,2), (2,3)]
+adjacentPairs :: [a] -> [(a,a)]
+adjacentPairs xs = zip (init xs) (tail xs)
+
 -- | Generate a randomly initialized layer in a neural network.
 randLayer :: RandomGen g
              => Int           -- ^ Number of inputs into the layer.
@@ -87,22 +101,6 @@ randLayer numInputs numNeurons = do
     bias <- vector <$> replicateM numNeurons (liftRand normal)
     weights <- (numNeurons><numInputs) <$> replicateM (numNeurons*numInputs) (liftRand normal)
     return $ Layer bias weights
-
--- | Generate a random neural network given the size of each layer.
---
--- For example, @[3,2,4]@ will generate a neural network with 3 input
--- neurons, 1 hidden layer with 2 neurons and 4 output neurons.
-randNetwork :: RandomGen g
-               => [Int]           -- ^ Number of neurons in each layer.
-               -> Rand g Network  -- ^ Randomly generated network.
-randNetwork sizes = Network <$> forM dims (uncurry randLayer)
-    where dims = adjacentPairs sizes
-
--- | Return a list of pairs of adjacent elements in a list.
---
--- Example: adjacentPairs [1,2,3] ==> [(1,2), (2,3)]
-adjacentPairs :: [a] -> [(a,a)]
-adjacentPairs xs = zip (init xs) (tail xs)
 
 
 -- ==================================================
@@ -164,12 +162,12 @@ instance Monoid Gradient where
 -- backpropogation algorithm.  We the State monad so it's more
 -- explicit that the output activation of one layer is the input to
 -- the next.
-computeActivations :: ActivationFunction -> Network -> Vector R -> ([Vector R], [Vector R])
-computeActivations act (Network layers) input = (reverse zs, reverse (input:as))
-    where (zs, as) = unzip $ evalState (mapM runLayer layers) input
+computeZsAndAs :: ActivationFunction -> Network -> Vector R -> ([Vector R], [Vector R])
+computeZsAndAs act (Network layers) input = (reverse zs, reverse (input:as))
+    where (zs, as) = unzip $ evalState (mapM computeZA layers) input
 
-          runLayer :: Layer -> State (Vector R) (Vector R, Vector R)
-          runLayer (Layer b w) = do
+          computeZA :: Layer -> State (Vector R) (Vector R, Vector R)
+          computeZA (Layer b w) = do
               x <- get
               let z = w #> x + b
                   a = cmap act z
@@ -183,11 +181,10 @@ backpropogation :: ActivationFunction
                 -> Network
                 -> Sample
                 -> Gradient
-backpropogation act act' cost' network@(Network layers) (Sample x y) =
+backpropogation act act' cost' net@(Network layers) (Sample x y) =
     Gradient (reverse $ nablaB_L:nablaBs) (reverse $ nablaW_L:nablaWs)
-    where (z:zs, a:a':as) = computeActivations act network x
-          delta_L = cost' a y * cmap act' z
-
+    where (z:zs, a:a':as) = computeZsAndAs act net x
+          delta_L  = cost' a y * cmap act' z
           nablaB_L = delta_L
           nablaW_L = asColumn delta_L <> asRow a'
           (nablaBs, nablaWs) =
@@ -198,7 +195,7 @@ backpropogation act act' cost' network@(Network layers) (Sample x y) =
 -- Traverse the previously reverse z values, activations, and layers
 -- from layer L to 2.  We thread the delta value along as state
 backpropogationBackwardsPass :: ActivationFunctionDerivative
-                             -> Vector R    -- ^ delta
+                             -> Vector R    -- ^ delta for the last layer.
                              -> [Vector R]  -- ^ zs in reverse order.
                              -> [Vector R]  -- ^ activations in reverse order.
                              -> [Layer]     -- ^ Layers L to 2.
@@ -215,7 +212,7 @@ backpropogationBackwardsPass act' delta_L zs as layers = unzip output
               pure (delta', asColumn delta' <> asRow a)
 
 -- | Update the network's weights and biases by applying gradient
--- descent for the given sample input.
+--   descent for the given sample input.
 gradientDescentCore :: TrainingConfig -> [Sample] -> Network -> Network
 gradientDescentCore (TrainingConfig eta act act' cost') trainingData net@(Network layers) =
     Network layers'

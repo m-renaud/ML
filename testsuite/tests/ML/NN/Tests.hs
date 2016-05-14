@@ -46,9 +46,9 @@ testRunNetwork_Empty =
 
 -- | When there are no layers, there should be no z's and the only
 --   activation should be the input.
-testComputeActivations_EmptyNetwork :: Assertion
-testComputeActivations_EmptyNetwork =
-    computeActivations identityActivation emptyNetwork x @?= ([], [x])
+testComputeZsAndAs_EmptyNetwork :: Assertion
+testComputeZsAndAs_EmptyNetwork =
+    computeZsAndAs identityActivation emptyNetwork x @?= ([], [x])
     where x = vector [1,2,3]
 
 -- | When there is a single identity layer, the zs = [z] where z is the sum
@@ -56,9 +56,9 @@ testComputeActivations_EmptyNetwork =
 --
 --   The order of the activations is reversed from the order they appear in the
 --   network so they can easily be used by the backpropogation algorithm.
-testComputeActivations_SingleLayerSingleNeuron :: Assertion
-testComputeActivations_SingleLayerSingleNeuron =
-    computeActivations identityActivation net x @?= ([z], [z,x])
+testComputeZsAndAs_SingleLayerSingleNeuron :: Assertion
+testComputeZsAndAs_SingleLayerSingleNeuron =
+    computeZsAndAs identityActivation net x @?= ([z], [z,x])
     where x = vector [1,2,3]
           z = vector [6]
           net = Network [Layer (vector [0]) ((1><3) [1,1,1])]
