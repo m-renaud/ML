@@ -23,7 +23,7 @@ module ML.NN
        ,   Sample(..)
        ,   Gradient(..)
        ,   CostDerivative
-       ,   gradientDescent
+       ,   sgd
 
            -- * Cost function derivatives
        ,   mse'
@@ -36,8 +36,10 @@ import ML.NN.ActivationFunction (ActivationFunction, ActivationFunctionDerivativ
 
 import Control.Monad (forM, replicateM)
 import Control.Monad.Random (Rand, liftRand)
+import Control.Monad.Random.Extended (shuffle)
 import Control.Monad.State (State, evalState, get, put)
 import Data.Foldable (foldl')
+import Data.List.Split (chunksOf)
 import Data.Random.Normal (normal)
 import Numeric.LinearAlgebra (Matrix, R, Vector, (><), (<>), (#>), cmap, konst, tr, vector)
 import Numeric.LinearAlgebra.Data (asColumn, asRow, size)
@@ -67,6 +69,7 @@ data Network = Network
 -- | Configuration for training a network.
 data TrainingConfig = TrainingConfig
                       { trainingEpochs :: Int  -- ^ Number of epochs of training to perform.
+                      , trainingMiniBatchSize :: Int -- ^ Size of each mini-batch for SGD.
                       , trainingEta    :: R    -- ^ η - Learning rate.
                       , trainingActivation :: ActivationFunction
                       , trainingActivationDerivative :: ActivationFunctionDerivative
@@ -214,30 +217,37 @@ backpropogationBackwardsPass act' delta_L zs as layers = unzip output
             put delta'
             pure (delta', asColumn delta' <> asRow a)
 
+gradientDescentCore :: R
+                    -> ActivationFunction
+                    -> ActivationFunctionDerivative
+                    -> CostDerivative
+                    -> [Sample]
+                    -> Network
+                    -> Network
+gradientDescentCore eta act act' cost' trainingData net@(Network layers) = Network layers'
+    where sampleGradients :: [Gradient]
+          sampleGradients = fmap (backpropogation act act' cost' net) trainingData
 
--- | Train the neural network using gradient descent.
-gradientDescent :: TrainingConfig
-                -> [Sample]  -- ^ Training data (input, expected output).
-                -> Network   -- ^ Current network.
-                -> Network   -- ^ Updated network.
-gradientDescent (TrainingConfig epochs eta act act' cost') trainingData inputNetwork =
+          Gradient nablaB nablaW = mconcat sampleGradients
+
+          numSamples = fromIntegral $ length trainingData
+          layers' = zipWith3 updateWeightsAndBiases layers nablaB nablaW
+
+          updateWeightsAndBiases :: Layer -> Vector R -> Matrix R -> Layer
+          updateWeightsAndBiases (Layer b w) nb nw =
+              Layer (b-(konst (eta/numSamples) (size b)) * nb)
+                    (w-(konst (eta/numSamples) (size w)) * nw)
+
+-- | Train the neural network using stochastic gradient descent.
+sgd :: RandomGen g => TrainingConfig -> [Sample] -> Network -> Rand g Network
+sgd (TrainingConfig epochs miniBatchSize eta act act' cost') trainingData inputNetwork =
     go epochs inputNetwork
-    where
-        go :: Int -> Network -> Network
-        go 0     network = network
-        go epoch network = go (epoch-1) (Network layers')
-            where sampleGradients :: [Gradient]
-                  sampleGradients = fmap (backpropogation act act' cost' network) trainingData
-
-                  Gradient nablaB nablaW = mconcat sampleGradients
-
-                  numSamples = fromIntegral $ length trainingData
-                  layers' = zipWith3 updateWeightsAndBiases (networkLayers network) nablaB nablaW
-
-                  updateWeightsAndBiases :: Layer -> Vector R -> Matrix R -> Layer
-                  updateWeightsAndBiases (Layer b w) nb nw =
-                      Layer (b-(konst (eta/numSamples) (size b)) * nb)
-                            (w-(konst (eta/numSamples) (size w)) * nw)
+    where go 0     network = pure network
+          go epoch network = do
+              shuffledTrainingData <- shuffle trainingData
+              let miniBatches = chunksOf miniBatchSize shuffledTrainingData
+                  network' = foldr (gradientDescentCore eta act act' cost') network miniBatches
+              go (epoch-1) network'
 
 
 -- ==================================================
