@@ -8,6 +8,9 @@
 @package ML
 @version 0.1.0.0
 
+module Control.Monad.Random.Extended
+shuffle :: RandomGen g => [a] -> Rand g [a]
+
 
 -- | Type aliases for activation functions and their derivative.
 module ML.NN.ActivationFunction
@@ -76,10 +79,13 @@ runNetwork :: Network -> ActivationFunction -> Vector R -> Vector R
 
 -- | Configuration for training a network.
 data TrainingConfig
-TrainingConfig :: Int -> R -> ActivationFunction -> ActivationFunctionDerivative -> CostDerivative -> TrainingConfig
+TrainingConfig :: Int -> Int -> R -> ActivationFunction -> ActivationFunctionDerivative -> CostDerivative -> TrainingConfig
 
 -- | Number of epochs of training to perform.
 [trainingEpochs] :: TrainingConfig -> Int
+
+-- | Size of each mini-batch for SGD.
+[trainingMiniBatchSize] :: TrainingConfig -> Int
 
 -- | η - Learning rate.
 [trainingEta] :: TrainingConfig -> R
@@ -105,8 +111,8 @@ Gradient :: [Vector R] -> [Matrix R] -> Gradient
 --   the expected output.
 type CostDerivative = Vector R -> Vector R -> Vector R
 
--- | Train the neural network using gradient descent.
-gradientDescent :: TrainingConfig -> [Sample] -> Network -> Network
+-- | Train the neural network using stochastic gradient descent.
+sgd :: RandomGen g => TrainingConfig -> [Sample] -> Network -> Rand g Network
 
 -- | The derivative of the mean squared error cost function.
 mse' :: CostDerivative
