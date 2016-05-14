@@ -68,9 +68,7 @@ data Network = Network
 
 -- | Configuration for training a network.
 data TrainingConfig = TrainingConfig
-                      { trainingEpochs :: Int  -- ^ Number of epochs of training to perform.
-                      , trainingMiniBatchSize :: Int -- ^ Size of each mini-batch for SGD.
-                      , trainingEta :: R  -- ^ η - Learning rate.
+                      { trainingEta :: R  -- ^ η - Learning rate.
                       , trainingActivation :: ActivationFunction
                       , trainingActivationDerivative :: ActivationFunctionDerivative
                       , trainingCostDerivative :: CostDerivative
@@ -218,14 +216,9 @@ backpropogationBackwardsPass act' delta_L zs as layers = unzip output
 
 -- | Update the network's weights and biases by applying gradient
 -- descent for the given sample input.
-gradientDescentCore :: R
-                    -> ActivationFunction
-                    -> ActivationFunctionDerivative
-                    -> CostDerivative
-                    -> [Sample]
-                    -> Network
-                    -> Network
-gradientDescentCore eta act act' cost' trainingData net@(Network layers) = Network layers'
+gradientDescentCore :: TrainingConfig -> [Sample] -> Network -> Network
+gradientDescentCore (TrainingConfig eta act act' cost') trainingData net@(Network layers) =
+    Network layers'
     where sampleGradients :: [Gradient]
           sampleGradients = fmap (backpropogation act act' cost' net) trainingData
 
@@ -240,15 +233,20 @@ gradientDescentCore eta act act' cost' trainingData net@(Network layers) = Netwo
                     (w-(konst (eta/numSamples) (size w)) * nw)
 
 -- | Train the neural network using stochastic gradient descent.
-sgd :: RandomGen g => TrainingConfig -> [Sample] -> Network -> Rand g Network
-sgd (TrainingConfig epochs miniBatchSize eta act act' cost') trainingData inputNetwork =
-    go epochs inputNetwork
-    where go 0     network = pure network
-          go epoch network = do
+sgd :: RandomGen g
+       => TrainingConfig
+       -> Int  -- ^ epochs
+       -> Int  -- ^ mini-batch size
+       -> [Sample]
+       -> Network
+       -> Rand g Network
+sgd trainingConfig epochs miniBatchSize trainingData network = go epochs network
+    where go 0     net = pure net
+          go epoch net = do
               shuffledTrainingData <- shuffle trainingData
               let miniBatches = miniBatchSize `chunksOf` shuffledTrainingData
-                  network' = foldr (gradientDescentCore eta act act' cost') network miniBatches
-              go (epoch-1) network'
+                  net' = foldr (gradientDescentCore trainingConfig) net miniBatches
+              go (epoch-1) net'
 
 
 -- ==================================================
