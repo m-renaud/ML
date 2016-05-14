@@ -70,7 +70,7 @@ data Network = Network
 data TrainingConfig = TrainingConfig
                       { trainingEpochs :: Int  -- ^ Number of epochs of training to perform.
                       , trainingMiniBatchSize :: Int -- ^ Size of each mini-batch for SGD.
-                      , trainingEta    :: R    -- ^ η - Learning rate.
+                      , trainingEta :: R  -- ^ η - Learning rate.
                       , trainingActivation :: ActivationFunction
                       , trainingActivationDerivative :: ActivationFunctionDerivative
                       , trainingCostDerivative :: CostDerivative
@@ -206,17 +206,18 @@ backpropogationBackwardsPass :: ActivationFunctionDerivative
                              -> [Layer]     -- ^ Layers L to 2.
                              -> ([Vector R], [Matrix R])  -- ^
 backpropogationBackwardsPass act' delta_L zs as layers = unzip output
-    where
-        output = evalState (mapM processLayer (zip3 layers zs as)) delta_L
+    where output = evalState (mapM processLayer (zip3 layers zs as)) delta_L
 
-        processLayer :: (Layer, Vector R, Vector R) -> State (Vector R) (Vector R, Matrix R)
-        processLayer ((Layer _bias weights), z, a) = do
-            delta <- get
-            let actPrime = cmap act' z
-                delta'   = (tr weights #> delta) * actPrime
-            put delta'
-            pure (delta', asColumn delta' <> asRow a)
+          processLayer :: (Layer, Vector R, Vector R) -> State (Vector R) (Vector R, Matrix R)
+          processLayer ((Layer _bias weights), z, a) = do
+              delta <- get
+              let actPrime = cmap act' z
+                  delta'   = (tr weights #> delta) * actPrime
+              put delta'
+              pure (delta', asColumn delta' <> asRow a)
 
+-- | Update the network's weights and biases by applying gradient
+-- descent for the given sample input.
 gradientDescentCore :: R
                     -> ActivationFunction
                     -> ActivationFunctionDerivative
@@ -245,7 +246,7 @@ sgd (TrainingConfig epochs miniBatchSize eta act act' cost') trainingData inputN
     where go 0     network = pure network
           go epoch network = do
               shuffledTrainingData <- shuffle trainingData
-              let miniBatches = chunksOf miniBatchSize shuffledTrainingData
+              let miniBatches = miniBatchSize `chunksOf` shuffledTrainingData
                   network' = foldr (gradientDescentCore eta act act' cost') network miniBatches
               go (epoch-1) network'
 
