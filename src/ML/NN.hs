@@ -33,6 +33,7 @@ module ML.NN
        ) where
 
 import ML.NN.ActivationFunction (ActivationFunction, ActivationFunctionDerivative)
+import ML.Sample (Sample(..))
 
 import Control.Monad (forM, replicateM)
 import Control.Monad.Random (Rand, liftRand)
@@ -132,12 +133,6 @@ runNetwork (Network layers) act input = foldl' (feedForward act) input layers
 -- The first parameter is the output activation, the second parameter
 -- is the expected output.
 type CostDerivative = Vector R -> Vector R -> Vector R
-
--- | A training sample.
-data Sample = Sample
-              { sampleInput          :: Vector R
-              , sampleExpectedOutput :: Vector R
-              } deriving (Read, Show)
 
 -- | The gradient of the network.
 data Gradient = Gradient

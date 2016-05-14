@@ -16,7 +16,7 @@ library
   hs-source-dirs:      src
   ghc-options:         -Wall -threaded
   exposed-modules:     ML.NN, ML.NN.Activation, ML.NN.ActivationFunction,
-                       Control.Monad.Random.Extended
+                       ML.Sample, Control.Monad.Random.Extended
   build-depends:       MonadRandom >= 0.4.2.2 && < 0.5,
                        array >= 0.5.1.0,
                        base >= 4.7 && < 5,
