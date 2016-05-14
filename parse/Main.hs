@@ -1,26 +1,46 @@
+{-# LANGUAGE BangPatterns #-}
+{- | Parser for MNIST data.
+Format: n lines of 785 double precision numbers, first 784 are the image, last is the expected number.
+-}
 module Main where
 
-import           Data.Attoparsec.ByteString.Char8 hiding (take)
-import qualified Data.ByteString as BS
-import           Numeric.LinearAlgebra (Vector, R, vector)
+import           Data.Attoparsec.ByteString.Char8 (Parser, char, double, parseOnly, sepBy)
+import qualified Data.ByteString.Char8 as BS
+import           Numeric.LinearAlgebra (R, Vector, assoc, vector)
+import qualified Data.Vector as V
 
-type Sample = (Vector R, Int)
+data Sample = Sample
+              { sampleInput          :: {-# UNPACK #-} !(Vector R)
+              , sampleExpectedOutput :: {-# UNPACK #-} !(Vector R)
+              } deriving (Read, Show)
 
 makeSample :: ([R], [R]) -> Sample
-makeSample (image, [expected]) = (vector image, floor expected)
-
-sampleSet :: Parser ([Sample], [Sample], [Sample])
-sampleSet = (,,) <$> count 50000 sample <*> count 10000 sample <*> count 10000 sample
+makeSample (image, [expected]) = Sample (vector image) (assoc 10 0 [(floor expected, 1)])
 
 sample :: Parser Sample
-sample = makeSample . splitAt 784 <$> double `sepBy` (char ' ') <* endOfLine
+sample = do
+  x <- double `sepBy` (char ' ')
+  let !s = makeSample $ splitAt 784 x
+  pure s
+
+toSampleSet :: V.Vector Sample -> (V.Vector Sample, V.Vector Sample, V.Vector Sample)
+toSampleSet vec = (train, validation, test)
+    where (train, rest) = V.splitAt 50000 vec
+          (validation, test) = V.splitAt 10000 rest
+
+parseMnist :: BS.ByteString -> (V.Vector Sample, V.Vector Sample, V.Vector Sample)
+parseMnist = toSampleSet . V.unfoldr parseLines . BS.lines
+    where parseLines :: [BS.ByteString] -> Maybe (Sample, [BS.ByteString])
+          parseLines []     = Nothing
+          parseLines (l:ls) = Just (fromRight $ parseOnly sample l, ls)
+
+          fromRight (Right b) = b
 
 main :: IO ()
 main = do
-    contents <- BS.readFile "/home/matt/Downloads/mnist.dat"
-    case parseOnly sampleSet contents of
-        Left err -> print err
-        Right (train, validation, test) -> print $
-            show (length train)      ++ " " ++
-            show (length validation) ++ " " ++
-            show (length test)
+    !contents <- BS.readFile "/home/matt/Downloads/mnist.dat"
+    let (!train, !validation, !test) = parseMnist contents
+    print $
+        show (length train)      ++ " " ++
+        show (length validation) ++ " " ++
+        show (length test)
