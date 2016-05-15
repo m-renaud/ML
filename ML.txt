@@ -10,6 +10,36 @@
 
 module Control.Monad.Random.Extended
 shuffle :: RandomGen g => [a] -> Rand g [a]
+vshuffle :: RandomGen g => Vector a -> Rand g (Vector a)
+
+module ML.Sample
+
+-- | A training sample.
+data Sample
+Sample :: {-# UNPACK #-} !(Vector R) -> {-# UNPACK #-} !(Vector R) -> Sample
+[sampleInput] :: Sample -> {-# UNPACK #-} !(Vector R)
+[sampleExpectedOutput] :: Sample -> {-# UNPACK #-} !(Vector R)
+instance GHC.Show.Show ML.Sample.Sample
+instance GHC.Read.Read ML.Sample.Sample
+
+
+-- | Provides a parser for text formatted MNIST data.
+module ML.MnistLoader
+
+-- | Parse the given bytestring into (training data, validation data, test
+--   data).
+--   
+--   Data format:
+--   
+--   <ul>
+--   <li>70000 lines lines of 785 doubles.</li>
+--   <li>first 1 - 50000 lines are test data.</li>
+--   <li>lines 50001 - 60000 are validation data.</li>
+--   <li>lines 60001 - 70000 are test data.</li>
+--   <li>first 784 double of each line are the image.</li>
+--   <li>last double of each is the expected value.</li>
+--   </ul>
+parseMnist :: ByteString -> (Vector Sample, Vector Sample, Vector Sample)
 
 
 -- | Type aliases for activation functions and their derivative.
@@ -49,13 +79,13 @@ type ActivationFunctionDerivative = R -> R
 --   number of inputs to the layer. Then <a>layerBiases</a> is a vector in
 --   Rⁿ and <a>layerWeights</a> is an <i>nxm</i> real matrix.
 data Layer
-Layer :: Vector R -> Matrix R -> Layer
+Layer :: {-# UNPACK #-} !(Vector R) -> {-# UNPACK #-} !(Matrix R) -> Layer
 
 -- | A vector in Rⁿ representing the neuron biases.
-[layerBiases] :: Layer -> Vector R
+[layerBiases] :: Layer -> {-# UNPACK #-} !(Vector R)
 
 -- | An <i>nxm</i> real matrix of the neuron weights.
-[layerWeights] :: Layer -> Matrix R
+[layerWeights] :: Layer -> {-# UNPACK #-} !(Matrix R)
 
 -- | A network is a list of layers.
 data Network
@@ -79,13 +109,7 @@ runNetwork :: Network -> ActivationFunction -> Vector R -> Vector R
 
 -- | Configuration for training a network.
 data TrainingConfig
-TrainingConfig :: Int -> Int -> R -> ActivationFunction -> ActivationFunctionDerivative -> CostDerivative -> TrainingConfig
-
--- | Number of epochs of training to perform.
-[trainingEpochs] :: TrainingConfig -> Int
-
--- | Size of each mini-batch for SGD.
-[trainingMiniBatchSize] :: TrainingConfig -> Int
+TrainingConfig :: R -> ActivationFunction -> ActivationFunctionDerivative -> CostDerivative -> TrainingConfig
 
 -- | η - Learning rate.
 [trainingEta] :: TrainingConfig -> R
@@ -95,15 +119,15 @@ TrainingConfig :: Int -> Int -> R -> ActivationFunction -> ActivationFunctionDer
 
 -- | A training sample.
 data Sample
-Sample :: Vector R -> Vector R -> Sample
-[sampleInput] :: Sample -> Vector R
-[sampleExpectedOutput] :: Sample -> Vector R
+Sample :: {-# UNPACK #-} !(Vector R) -> {-# UNPACK #-} !(Vector R) -> Sample
+[sampleInput] :: Sample -> {-# UNPACK #-} !(Vector R)
+[sampleExpectedOutput] :: Sample -> {-# UNPACK #-} !(Vector R)
 
 -- | The gradient of the network.
 data Gradient
-Gradient :: [Vector R] -> [Matrix R] -> Gradient
-[gradientNablaB] :: Gradient -> [Vector R]
-[gradientNablaW] :: Gradient -> [Matrix R]
+Gradient :: {-# UNPACK #-} !(Vector (Vector R)) -> {-# UNPACK #-} !(Vector (Matrix R)) -> Gradient
+[gradientNablaB] :: Gradient -> {-# UNPACK #-} !(Vector (Vector R))
+[gradientNablaW] :: Gradient -> {-# UNPACK #-} !(Vector (Matrix R))
 
 -- | A vectorized function which returns ∂Cₓ/∂a.
 --   
@@ -112,7 +136,11 @@ Gradient :: [Vector R] -> [Matrix R] -> Gradient
 type CostDerivative = Vector R -> Vector R -> Vector R
 
 -- | Train the neural network using stochastic gradient descent.
-sgd :: RandomGen g => TrainingConfig -> [Sample] -> Network -> Rand g Network
+sgd :: TrainingConfig -> Int -> Int -> Vector Sample -> Network -> IO Network
+
+-- | Update the network's weights and biases by applying gradient descent
+--   for the given sample input.
+gradientDescentCore :: TrainingConfig -> Vector Sample -> Network -> Network
 
 -- | The derivative of the mean squared error cost function.
 mse' :: CostDerivative
@@ -122,13 +150,10 @@ mse' :: CostDerivative
 --   The values are returned in reverse order for use by the
 --   backpropogation algorithm. We the State monad so it's more explicit
 --   that the output activation of one layer is the input to the next.
-computeActivations :: ActivationFunction -> Network -> Vector R -> ([Vector R], [Vector R])
+computeZsAndAs :: ActivationFunction -> Network -> Vector R -> ([Vector R], [Vector R])
 instance GHC.Show.Show ML.NN.Gradient
 instance GHC.Read.Read ML.NN.Gradient
-instance GHC.Show.Show ML.NN.Sample
-instance GHC.Read.Read ML.NN.Sample
 instance GHC.Read.Read ML.NN.Network
 instance GHC.Show.Show ML.NN.Network
 instance GHC.Read.Read ML.NN.Layer
 instance GHC.Show.Show ML.NN.Layer
-instance GHC.Base.Monoid ML.NN.Gradient
