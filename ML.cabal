@@ -16,10 +16,12 @@ library
   hs-source-dirs:      src
   ghc-options:         -Wall -threaded
   exposed-modules:     ML.NN, ML.NN.Activation, ML.NN.ActivationFunction,
-                       ML.Sample, Control.Monad.Random.Extended
+                       ML.MnistLoader, ML.Sample, Control.Monad.Random.Extended
   build-depends:       MonadRandom >= 0.4.2.2 && < 0.5,
                        array >= 0.5.1.0,
+                       attoparsec >= 0.13.0.2,
                        base >= 4.7 && < 5,
+                       bytestring >= 0.10.6.0,
                        hmatrix >= 0.17.0.1 && < 0.18,
                        mtl >= 2.2.1,
                        normaldistribution >= 1.1.0.2 && < 1.2,
@@ -30,11 +32,12 @@ library
 executable test
   hs-source-dirs:      testing
   main-is:             Main.hs
-  ghc-options:         -Wall -threaded
+  ghc-options:         -Wall -threaded -fprof-auto -rtsopts
   build-depends:       ML,
                        MonadRandom >= 0.4.2.2 && < 0.5,
                        array >= 0.5.1.0,
                        base >= 4.7 && < 5,
+                       bytestring >= 0.10.6.0,
                        hmatrix >= 0.17.0.1 && < 0.18,
                        mtl >= 2.2.1,
                        vector >= 0.11.0.0
@@ -71,6 +74,7 @@ test-suite test-all
                        ML,
                        array >= 0.5.1.0,
                        base >= 4.7 && < 5,
+                       bytestring >= 0.10.6.0,
                        hmatrix >= 0.17.0.1 && < 0.18,
                        mtl >= 2.2.1,
                        tasty >= 0.11.0.3 && < 0.12,
