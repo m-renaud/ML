@@ -1,10 +1,11 @@
-module Control.Monad.Random.Extended (shuffle) where
+module Control.Monad.Random.Extended (shuffle, vshuffle) where
 
-import Control.Monad (forM_)
-import Control.Monad.Random (Rand, getRandomRs)
-import Data.Array.ST (runSTArray)
-import GHC.Arr (elems, listArray, readSTArray, thawSTArray, writeSTArray)
-import System.Random (RandomGen)
+import           Control.Monad (forM_)
+import           Control.Monad.Random (Rand, getRandomRs)
+import           Data.Array.ST (runSTArray)
+import qualified Data.Vector as V
+import           GHC.Arr (elems, listArray, readSTArray, thawSTArray, writeSTArray)
+import           System.Random (RandomGen)
 
 shuffle :: RandomGen g => [a] -> Rand g [a]
 shuffle xs = do
@@ -19,3 +20,6 @@ shuffle xs = do
                 writeSTArray ar i vj
             pure ar
     pure $ elems ar'
+
+vshuffle :: RandomGen g => V.Vector a -> Rand g (V.Vector a)
+vshuffle arr = V.fromList <$> shuffle (V.toList arr)
