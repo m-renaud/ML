@@ -24,6 +24,7 @@ module ML.NN
        ,   Gradient(..)
        ,   CostDerivative
        ,   sgd
+       ,   gradientDescentCore
 
            -- * Cost function derivatives
        ,   mse'
@@ -32,19 +33,20 @@ module ML.NN
        ,   computeZsAndAs
        ) where
 
-import ML.NN.ActivationFunction (ActivationFunction, ActivationFunctionDerivative)
-import ML.Sample (Sample(..))
+import           ML.NN.ActivationFunction (ActivationFunction, ActivationFunctionDerivative)
+import           ML.Sample (Sample(..))
 
-import Control.Monad (forM, replicateM)
-import Control.Monad.Random (Rand, liftRand)
-import Control.Monad.Random.Extended (shuffle)
-import Control.Monad.State (State, evalState, get, put)
-import Data.Foldable (foldl')
-import Data.List.Split (chunksOf)
-import Data.Random.Normal (normal)
-import Numeric.LinearAlgebra (Matrix, R, Vector, (><), (<>), (#>), cmap, konst, tr, vector)
-import Numeric.LinearAlgebra.Data (asColumn, asRow, size)
-import System.Random (RandomGen)
+import           Control.Monad (forM, replicateM)
+import           Control.Monad.Random (Rand, evalRandIO, liftRand)
+import           Control.Monad.Random.Extended (vshuffle)
+import           Control.Monad.State (State, evalState, get, put)
+import           Data.Foldable (foldl')
+import           Data.List (unfoldr)
+import           Data.Random.Normal (normal)
+import qualified Data.Vector as V
+import           Numeric.LinearAlgebra (Matrix, R, Vector, (><), (<>), (#>), cmap, konst, tr, vector)
+import           Numeric.LinearAlgebra.Data (asColumn, asRow, size)
+import           System.Random (RandomGen)
 
 
 -- ==================================================
@@ -57,8 +59,10 @@ import System.Random (RandomGen)
 -- of inputs to the layer. Then 'layerBiases' is a vector in Rⁿ and
 -- 'layerWeights' is an /nxm/ real matrix.
 data Layer = Layer
-             { layerBiases  :: Vector R  -- ^ A vector in Rⁿ representing the neuron biases.
-             , layerWeights :: Matrix R  -- ^ An /nxm/ real matrix of the neuron weights.
+             { layerBiases  :: {-# UNPACK #-} !(Vector R)
+                                              -- ^ A vector in Rⁿ representing the neuron biases.
+             , layerWeights :: {-# UNPACK #-} !(Matrix R)
+                                              -- ^ An /nxm/ real matrix of the neuron weights.
              } deriving (Show, Read)
 
 -- | A network is a list of layers.
@@ -136,20 +140,14 @@ type CostDerivative = Vector R -> Vector R -> Vector R
 
 -- | The gradient of the network.
 data Gradient = Gradient
-                { gradientNablaB :: [Vector R]
-                , gradientNablaW :: [Matrix R]
+                { gradientNablaB :: {-# UNPACK #-} !(V.Vector (Vector R))
+                , gradientNablaW :: {-# UNPACK #-} !(V.Vector (Matrix R))
                 } deriving (Read, Show)
 
--- | The monoid instance for gradient sums the components.
---
--- We treat a gradiant with no bias or weight values as the `mempty`
--- Gradient.
-instance Monoid Gradient where
-    mempty = Gradient [] []
-    (Gradient [] []) `mappend` g = g
-    g `mappend` (Gradient [] []) = g
-    (Gradient lb lw) `mappend` (Gradient rb rw) =
-        Gradient (zipWith (+) lb rb) (zipWith (+) lw rw)
+sumGradients :: V.Vector Gradient -> Gradient
+sumGradients = V.foldl1' addGradient
+    where (Gradient !lb !lw) `addGradient` (Gradient !rb !rw) =
+              Gradient (V.zipWith (+) lb rb) (V.zipWith (+) lw rw)
 
 -- | Return z and activation values for each layer in the network.
 --
@@ -177,7 +175,7 @@ backpropogation :: ActivationFunction
                 -> Sample
                 -> Gradient
 backpropogation act act' cost' net@(Network layers) (Sample x y) =
-    Gradient (reverse $ nablaB_L:nablaBs) (reverse $ nablaW_L:nablaWs)
+    Gradient (V.reverse $ V.cons nablaB_L nablaBs) (V.reverse $ V.cons nablaW_L nablaWs)
     where (z:zs, a:a':as) = computeZsAndAs act net x
           delta_L  = cost' a y * cmap act' z
           nablaB_L = delta_L
@@ -194,9 +192,9 @@ backpropogationBackwardsPass :: ActivationFunctionDerivative
                              -> [Vector R]  -- ^ zs in reverse order.
                              -> [Vector R]  -- ^ activations in reverse order.
                              -> [Layer]     -- ^ Layers L to 2.
-                             -> ([Vector R], [Matrix R])  -- ^
-backpropogationBackwardsPass act' delta_L zs as layers = unzip output
-    where output = evalState (mapM processLayer (zip3 layers zs as)) delta_L
+                             -> (V.Vector (Vector R), V.Vector (Matrix R))  -- ^
+backpropogationBackwardsPass act' delta_L zs as layers = V.unzip output
+    where !output = V.fromList $ evalState (mapM processLayer (zip3 layers zs as)) delta_L
 
           processLayer :: (Layer, Vector R, Vector R) -> State (Vector R) (Vector R, Matrix R)
           processLayer ((Layer _bias weights), z, a) = do
@@ -208,16 +206,16 @@ backpropogationBackwardsPass act' delta_L zs as layers = unzip output
 
 -- | Update the network's weights and biases by applying gradient
 --   descent for the given sample input.
-gradientDescentCore :: TrainingConfig -> [Sample] -> Network -> Network
+gradientDescentCore :: TrainingConfig -> V.Vector Sample -> Network -> Network
 gradientDescentCore (TrainingConfig eta act act' cost') trainingData net@(Network layers) =
     Network layers'
-    where sampleGradients :: [Gradient]
-          sampleGradients = fmap (backpropogation act act' cost' net) trainingData
+    where sampleGradients :: V.Vector Gradient
+          !sampleGradients = V.map (backpropogation act act' cost' net) trainingData
 
-          Gradient nablaB nablaW = mconcat sampleGradients
+          Gradient nablaB nablaW = sumGradients sampleGradients
 
           numSamples = fromIntegral $ length trainingData
-          layers' = zipWith3 updateWeightsAndBiases layers nablaB nablaW
+          layers' = V.toList $ V.zipWith3 updateWeightsAndBiases (V.fromList layers) nablaB nablaW
 
           updateWeightsAndBiases :: Layer -> Vector R -> Matrix R -> Layer
           updateWeightsAndBiases (Layer b w) nb nw =
@@ -225,20 +223,26 @@ gradientDescentCore (TrainingConfig eta act act' cost') trainingData net@(Networ
                     (w-(konst (eta/numSamples) (size w)) * nw)
 
 -- | Train the neural network using stochastic gradient descent.
-sgd :: RandomGen g
-       => TrainingConfig
-       -> Int  -- ^ epochs
-       -> Int  -- ^ mini-batch size
-       -> [Sample]
-       -> Network
-       -> Rand g Network
+sgd :: TrainingConfig
+    -> Int  -- ^ epochs
+    -> Int  -- ^ mini-batch size
+    -> V.Vector Sample
+    -> Network
+    -> IO Network
 sgd trainingConfig epochs miniBatchSize trainingData network = go epochs network
-    where go 0     net = pure net
+    where go 0     net = putStrLn "done!" >> pure net
           go epoch net = do
-              shuffledTrainingData <- shuffle trainingData
-              let miniBatches = miniBatchSize `chunksOf` shuffledTrainingData
-                  net' = foldr (gradientDescentCore trainingConfig) net miniBatches
+              putStrLn $ "Epoch: " ++ show epoch
+              shuffledTrainingData <- evalRandIO $ vshuffle trainingData
+              let miniBatches = miniBatchSize `vChunksOf` shuffledTrainingData
+                  net' = foldl' (flip (gradientDescentCore trainingConfig)) net miniBatches
               go (epoch-1) net'
+
+vChunksOf :: Int -> V.Vector a -> [V.Vector a]
+vChunksOf n vec = Data.List.unfoldr makeChunk vec
+    where makeChunk :: V.Vector a -> Maybe (V.Vector a, V.Vector a)
+          makeChunk v | V.null v  = Nothing
+                      | otherwise = Just $ V.splitAt n v
 
 
 -- ==================================================
