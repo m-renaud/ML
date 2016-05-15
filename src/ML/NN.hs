@@ -174,7 +174,7 @@ backpropogation :: ActivationFunction
                 -> Network
                 -> Sample
                 -> Gradient
-backpropogation act act' cost' net@(Network layers) (Sample x y) =
+backpropogation act act' cost' !net@(Network !layers) (Sample !x !y) =
     Gradient (V.reverse $ V.cons nablaB_L nablaBs) (V.reverse $ V.cons nablaW_L nablaWs)
     where (z:zs, a:a':as) = computeZsAndAs act net x
           delta_L  = cost' a y * cmap act' z
