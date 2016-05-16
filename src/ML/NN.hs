@@ -207,15 +207,15 @@ backpropogationBackwardsPass act' delta_L zs as layers = V.unzip output
 -- | Update the network's weights and biases by applying gradient
 --   descent for the given sample input.
 gradientDescentCore :: TrainingConfig -> V.Vector Sample -> Network -> Network
-gradientDescentCore (TrainingConfig eta act act' cost') trainingData net@(Network layers) =
+gradientDescentCore (TrainingConfig eta act act' cost') !trainingData !net@(Network !layers) =
     Network layers'
     where sampleGradients :: V.Vector Gradient
           !sampleGradients = V.map (backpropogation act act' cost' net) trainingData
 
-          Gradient nablaB nablaW = sumGradients sampleGradients
+          Gradient !nablaB !nablaW = sumGradients sampleGradients
 
           numSamples = fromIntegral $ length trainingData
-          layers' = V.toList $ V.zipWith3 updateWeightsAndBiases (V.fromList layers) nablaB nablaW
+          !layers' = V.toList $ V.zipWith3 updateWeightsAndBiases (V.fromList layers) nablaB nablaW
 
           updateWeightsAndBiases :: Layer -> Vector R -> Matrix R -> Layer
           updateWeightsAndBiases (Layer b w) nb nw =
@@ -229,13 +229,13 @@ sgd :: TrainingConfig
     -> V.Vector Sample
     -> Network
     -> IO Network
-sgd trainingConfig epochs miniBatchSize trainingData network = go epochs network
-    where go 0     net = putStrLn "done!" >> pure net
-          go epoch net = do
+sgd trainingConfig !epochs !miniBatchSize !trainingData !network = go epochs network
+    where go 0     !net = putStrLn "done!" >> pure net
+          go epoch !net = do
               putStrLn $ "Epoch: " ++ show epoch
-              shuffledTrainingData <- evalRandIO $ vshuffle trainingData
+              !shuffledTrainingData <- evalRandIO $ vshuffle trainingData
               let miniBatches = miniBatchSize `vChunksOf` shuffledTrainingData
-                  net' = foldl' (flip (gradientDescentCore trainingConfig)) net miniBatches
+                  !net' = foldl' (flip (gradientDescentCore trainingConfig)) net miniBatches
               go (epoch-1) net'
 
 vChunksOf :: Int -> V.Vector a -> [V.Vector a]
