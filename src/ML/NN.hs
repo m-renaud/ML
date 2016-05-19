@@ -44,7 +44,8 @@ import           Data.Foldable (foldl')
 import           Data.List (unfoldr)
 import           Data.Random.Normal (normal)
 import qualified Data.Vector as V
-import           Numeric.LinearAlgebra (Matrix, R, Vector, (><), (<>), (#>), cmap, konst, tr, vector)
+import           Numeric.LinearAlgebra (Matrix, R, Vector, (><), (<>), (#>), cmap, konst, outer, tr,
+                                        vector)
 import           Numeric.LinearAlgebra.Data (asColumn, asRow, size)
 import           System.Random (RandomGen)
 
@@ -202,7 +203,7 @@ backpropogationBackwardsPass act' delta_L zs as layers = V.unzip output
               let actPrime = cmap act' z
                   delta'   = (tr weights #> delta) * actPrime
               put delta'
-              pure (delta', asColumn delta' <> asRow a)
+              pure (delta', delta' `outer` a)
 
 -- | Update the network's weights and biases by applying gradient
 --   descent for the given sample input.
