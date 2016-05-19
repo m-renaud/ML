@@ -230,14 +230,15 @@ sgd :: TrainingConfig
     -> V.Vector Sample
     -> Network
     -> IO Network
-sgd trainingConfig !epochs !miniBatchSize !trainingData !network = go epochs network
-    where go 0     !net = putStrLn "done!" >> pure net
-          go epoch !net = do
-              putStrLn $ "Epoch: " ++ show epoch
-              !shuffledTrainingData <- evalRandIO $ vshuffle trainingData
-              let miniBatches = miniBatchSize `vChunksOf` shuffledTrainingData
-                  !net' = foldl' (flip (gradientDescentCore trainingConfig)) net miniBatches
-              go (epoch-1) net'
+sgd trainingConfig !epochs !miniBatchSize !trainingData !network = trainEpoch 0 network
+    where trainEpoch epoch !net
+              | epoch == epochs = putStrLn "done!" >> pure net
+              | otherwise = do
+                    !shuffledTrainingData <- evalRandIO $ vshuffle trainingData
+                    let miniBatches = miniBatchSize `vChunksOf` shuffledTrainingData
+                        !net' = foldl' (flip (gradientDescentCore trainingConfig)) net miniBatches
+                    putStrLn $ "Completed epoch: " ++ show epoch
+                    trainEpoch (epoch+1) net'
 
 vChunksOf :: Int -> V.Vector a -> [V.Vector a]
 vChunksOf n vec = Data.List.unfoldr makeChunk vec
