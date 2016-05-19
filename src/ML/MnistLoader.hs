@@ -4,12 +4,12 @@ Provides a parser for text formatted MNIST data.
 -}
 module ML.MnistLoader (parseMnist) where
 
-import ML.Sample (Sample(..))
+import           ML.Sample (Sample(..))
 
 import           Data.Attoparsec.ByteString.Char8 (Parser, char, double, parseOnly, sepBy)
 import qualified Data.ByteString.Char8 as BS
-import           Numeric.LinearAlgebra (R, assoc, vector)
 import qualified Data.Vector as V
+import           Numeric.LinearAlgebra (R, assoc, vector)
 
 makeSample :: ([R], [R]) -> Sample
 makeSample (image, [expected]) = Sample (vector image) (assoc 10 0 [(floor expected, 1)])
@@ -25,9 +25,9 @@ toSampleSet vec = (train, validation, test)
 -- | Parse an MNIST sample image.
 sample :: Parser Sample
 sample = do
-  x <- double `sepBy` (char ' ')
-  let !s = makeSample $ splitAt 784 x
-  pure s
+    !x <- double `sepBy` (char ' ')
+    let !s = makeSample $ splitAt 784 x
+    pure s
 
 -- | Parse the given bytestring into (training data, validation data, test data).
 --
