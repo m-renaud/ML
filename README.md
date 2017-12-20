@@ -8,5 +8,5 @@ written in Haskell and is built using stack.
 
 An implementation of a very simple neural network.
 
-For documentation see http://mrenaud.ca/ML.
+For documentation see http://www.m-renaud.com/ML.
 
